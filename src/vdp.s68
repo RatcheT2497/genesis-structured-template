@@ -1,0 +1,89 @@
+    include "vdp.i68"
+    xdef VDPInit
+    xdef VDPRamWipe
+    xdef VDPWriteLineDebug
+
+    section code
+; **************** ;
+; VDP INIT ROUTINE ;
+; **************** ;
+VDPInit:
+    lea         vdp_init_table, a0     ; table address
+    moveq       #0, d0                  ; value read from table
+    moveq       #23, d1                 ; loop counter - 24 registers, dbra requires len-1
+.loop:
+    move.w      (a0)+, (VDP_CTRL)       ; read value and write to vdp
+    dbra        d1, .loop               ; loop
+    ; fall through and clear ram
+
+; ******************** ;
+; VDP RAM WIPE ROUTINE ;
+; ******************** ;
+VDPRamWipe: 
+    ; clear cram
+    VDP_LOAD_ADDR VDP_WRITE_CRAM, 0
+    move.l      #(VDP_CRAM_SIZE/2)-1, d0
+.loop_cram:
+    move.w      #0, (VDP_DATA)
+    dbra        d0, .loop_cram
+
+    ; clear vram
+    VDP_LOAD_ADDR VDP_WRITE_VRAM, 0
+    move.l      #(VDP_VRAM_SIZE/2)-1, d0
+.loop_vram:
+    move.w      #0, (VDP_DATA)
+    dbra        d0, .loop_vram
+
+    ; clear vsram
+    VDP_LOAD_ADDR VDP_WRITE_VSRAM, 0
+    move.l      #(VDP_VSRAM_SIZE/2)-1, d0
+.loop_vsram:
+    move.w      #0, (VDP_DATA)
+    dbra        d0, .loop_vsram
+
+    rts
+
+; Write a line of text to the VDP
+; a0 - input 
+; d0 - base tile word
+; d0, d1 - modified
+VDPWriteLineDebug:
+    ; VDP_CTRL needs to be configured first
+    move.b      #0, d0
+    moveq       #39, d1
+.loop:
+    move.b      (a0)+, d0
+    bne         .noend
+    rts
+.noend:
+    sub.b       #" ", d0
+    move.w      d0, VDP_DATA
+    dbra        d1, .loop
+    rts
+
+    section rodata
+vdp_init_table:
+    dc.w $8000 | %00010100                           ; reg 00: enable hblank interrupt
+    dc.w $8100 | %01110100                           ; reg 01: enable display, vblank int. and dma. set vert. resolutio
+    dc.w $8200 | %00110000                           ; reg 02: plane A address at 0xC000
+    dc.w $8300 | %00000000                           ; reg 03: window address at 0
+    dc.w $8400 | %00000111                           ; reg 04: plane B address at 0xE000
+    dc.w $8500 | %01111000                           ; reg 05: sprite table address at 0xF000
+    dc.w $8600 | %00000000                           ; reg 06: N/A
+    dc.w $8700 | %00000000                           ; reg 07: background color 0 from palette 0
+    dc.w $8800 | %00000000                           ; reg 08: N/A
+    dc.w $8900 | %00000000                           ; reg 09: N/A
+    dc.w $8A00 | $FF                                 ; reg 0A: hblank interrupt rate
+    dc.w $8B00 | VDP_XSCROLL_FULL | VDP_YSCROLL_FULL ; reg 0B: scroll type + ext. int. off
+    dc.w $8C00 | %10000001                           ; reg 0C: set horiz. resolution to 320, no interlacing and no shad
+    dc.w $8D00 | %00111111                           ; reg 0D: X scroll table address at 0xFC00
+    dc.w $8E00 | %00000000                           ; reg 0E: N/A
+    dc.w $8F00 | $2                                  ; reg 0F: autoincrement: 2
+    dc.w $9000 | VDP_PLANE_W64 | VDP_PLANE_H32       ; reg 10: plane size w/h
+    dc.w $9100 | %00000000                           ; reg 11: window X, Left: 0
+    dc.w $9200 | %00000000                           ; reg 12: window Y, Top: 0
+    dc.w $9300 | $FF                                 ; reg 13: dma length low
+    dc.w $9400 | $FF                                 ; reg 14: dma length high
+    dc.w $9500 | %00000000                           ; reg 15: dma source low
+    dc.w $9600 | %00000000                           ; reg 16: dma source mid
+    dc.w $9700 | %10000000                           ; reg 17: dma source high, dma type (ram-to-vram)

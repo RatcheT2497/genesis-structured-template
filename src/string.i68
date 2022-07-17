@@ -1,0 +1,20 @@
+    ifnd STRING_I68
+STRING_I68: equ 0
+
+; place string padded to a certain length with spaces
+padstr:  macro ; str, len
+.\@:
+    dc.b \1
+
+    ; macro error checking
+    if (* - .\@) > \2
+        echo "WARN: padstr(", \1, ", ", \2, "): provided string too long to pad"
+    endif
+
+    ; pad string
+    if (* - .\@) < \2
+        ds.b \2 - (* - .\@), $20
+    endif
+    endm
+
+    endif

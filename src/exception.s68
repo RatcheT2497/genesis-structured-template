@@ -1,0 +1,247 @@
+
+    include "macros.i68"
+    include "vdp.i68"
+    xdef IntException
+
+    xref sys_exception_code
+    xref StringWriteHexU32
+    xref VDPWriteLineDebug
+    xref VDPInit
+
+    xref tls_fontcnt
+    xref tls_font
+
+    xref sys_vblank_fn
+
+    section fbss
+    sys_exception_dbuf:    ds.l 8
+    sys_exception_abuf:    ds.l 8
+    sys_exception_sr:      ds.w 1
+    sys_exception_linebuf: ds.b 40
+
+    section code
+;;; EXCEPTION INTERRUPT ;;;
+IntException:
+    movem.l     a0-a7, sys_exception_abuf
+    movem.l     d0-d7, sys_exception_dbuf
+    move.w      sr, sys_exception_sr
+    SYS_DI
+
+    ; reset vdp state
+    bsr         VDPInit
+
+    ; update hblank/vblank handlers
+    lea         sys_vblank_fn, a0
+    move.l      #StateErrorVblank, (a0)+
+    move.l      #StateErrorHblank, (a0)+
+
+    ; wait for vblank
+    SYS_EI
+    VDP_WAIT_VBLANK
+    SYS_DI
+
+    ; load palette
+    VDP_LOAD_ADDR VDP_WRITE_CRAM, 0
+    move.w      #%0000000000000000, VDP_DATA
+    move.w      #%0000000000001110, VDP_DATA
+    move.w      #%0000000011100000, VDP_DATA
+    move.w      #%0000111000000000, VDP_DATA
+    move.w      #%0000111011101110, VDP_DATA
+
+    ; load debug font
+    VDP_LOAD_ADDR VDP_WRITE_VRAM, 0
+    lea         tls_font, a0
+    move.w      tls_fontcnt, d0
+    muls        #VDP_TILELEN_L, d0
+    subq        #1, d0
+.twriteloop:
+    move.l      (a0)+, VDP_DATA
+    dbra        d0, .twriteloop
+
+    ; load tilemap
+
+    ; d2 = vram address
+    ; d3 = loop count
+    ; a0 = sys_exception_linebuf
+    ; a2 = sys_exception_dbuf
+    ; a3 = sys_exception_abuf
+    ; a4 = DataRegStrings
+    ; a5 = AddrRegStrings
+
+    move.l      #$C000, d2
+    VDP_LOAD_ADDR_R VDP_WRITE_VRAM, d2, d7
+    move.w      #("E"-" "), VDP_DATA
+    move.w      #("R"-" "), VDP_DATA
+    move.w      #("R"-" "), VDP_DATA
+    move.w      #("O"-" "), VDP_DATA
+    move.w      #("R"-" "), VDP_DATA
+    move.w      #0, VDP_DATA
+
+    ; write error code number
+    lea         sys_exception_linebuf, a0
+    moveq       #0, d0
+    move.w      sys_exception_code, d0
+    jsr         StringWriteHexU32
+    lea         sys_exception_linebuf, a0
+    moveq       #0, d0
+    jsr         VDPWriteLineDebug
+
+    ; write error code string
+    add.l       #128, d2
+    VDP_LOAD_ADDR_R VDP_WRITE_VRAM, d2, d7
+
+    lea         exception_name_lut, a0
+    move.w      sys_exception_code, d0
+    ; each string is 16 bytes in total, create offset
+    lsl.l       #4, d0 
+    add.l       d0, a0
+    moveq       #0, d0 ; reset d0 for write sub
+    jsr         VDPWriteLineDebug
+
+    lea         sys_exception_linebuf, a0
+    lea         sys_exception_dbuf, a2
+    lea         sys_exception_abuf, a3
+    lea         data_reg_strings, a4
+    lea         addr_reg_strings, a5
+    move.l      #7, d3
+.loop:
+    ; setup vdp write address
+    add.l       #128, d2
+    VDP_LOAD_ADDR_R VDP_WRITE_VRAM, d2, d7
+
+
+    lea         sys_exception_linebuf, a0
+    ; insert register prefix
+    move.l      (a4)+, (a0)+
+
+    ; write register value
+    move.l      (a2)+, d0               
+    jsr         StringWriteHexU32
+    
+    move.w      #"  ", (a0)+
+
+    ; insert register prefix
+    move.l      (a5)+, (a0)+
+
+    ; write register value
+    move.l      (a3)+, d0
+    jsr         StringWriteHexU32
+
+    ; write buffer to vdp
+    lea         sys_exception_linebuf, a0
+    moveq       #0, d0
+    jsr         VDPWriteLineDebug
+    dbra        d3, .loop
+    
+    ; write trace
+    ;add.l       #128, d2
+    ;VDP_LOAD_ADDR_R VDP_WRITE_VRAM, d2, d7
+
+    ;lea         sys_exception_linebuf, a0
+    ;move.l      #$00FFFFFE, d0
+    ;sub.l       -(a3), d0
+    ;jsr         StringWriteHexU32
+    ;move.b      #0, (a0)+
+
+    ;lea         sys_exception_linebuf, a0
+    ;jsr         VDPWriteLineDebug
+
+
+infloop:
+    bra         infloop
+    rte
+
+; -------------------------- ;
+; ERROR STATE VBLANK HANDLER ;
+; -------------------------- ;
+StateErrorVblank:
+    rts
+
+; -------------------------- ;
+; ERROR STATE HBLANK HANDLER ;
+; -------------------------- ;
+StateErrorHblank:
+    move.l      (sp)+, a0
+    rte
+
+    section rodata
+data_reg_strings:
+    dc.l        "d0: "
+    dc.l        "d1: "
+    dc.l        "d2: "
+    dc.l        "d3: "
+    dc.l        "d4: "
+    dc.l        "d5: "
+    dc.l        "d6: "
+    dc.l        "d7: "
+
+addr_reg_strings:
+    dc.l        "a0: "
+    dc.l        "a1: "
+    dc.l        "a2: "
+    dc.l        "a3: "
+    dc.l        "a4: "
+    dc.l        "a5: "
+    dc.l        "a6: "
+    dc.l        "sp: "
+
+exception_name_lut:
+    dc.b        "BUS ERROR      ", 0
+    dc.b        "ADDRESS ERROR  ", 0
+    dc.b        "ILLEGAL INSTR  ", 0
+    dc.b        "DIV / ZERO bruh", 0
+    dc.b        "CHK EXCEPTION  ", 0
+    dc.b        "TRAPV EXCEPTION", 0
+    dc.b        "PRIVILEGE VIOL.", 0
+    dc.b        "TRACE EXCEPTION", 0
+    dc.b        "LINE-A EMULATOR", 0
+    dc.b        "LINE-F EMULATOR", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "CP. PROT. VIOL ", 0
+    dc.b        "FORMAT ERROR   ", 0
+    dc.b        "UNINIT INT VEC.", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "SPURIOUS INT   ", 0
+    dc.b        "IRQ 1          ", 0
+    dc.b        "IRQ 2/EXT      ", 0
+    dc.b        "IRQ 5          ", 0
+    dc.b        "IRQ 7          ", 0
+    dc.b        "TRAP 0         ", 0
+    dc.b        "TRAP 1         ", 0
+    dc.b        "TRAP 2         ", 0
+    dc.b        "TRAP 3         ", 0
+    dc.b        "TRAP 4         ", 0
+    dc.b        "TRAP 5         ", 0
+    dc.b        "TRAP 6         ", 0
+    dc.b        "TRAP 7         ", 0
+    dc.b        "TRAP 8         ", 0
+    dc.b        "TRAP 9         ", 0
+    dc.b        "TRAP A         ", 0
+    dc.b        "TRAP B         ", 0
+    dc.b        "TRAP C         ", 0
+    dc.b        "TRAP D         ", 0
+    dc.b        "TRAP E         ", 0
+    dc.b        "TRAP F         ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0
+    dc.b        "RESERVED       ", 0

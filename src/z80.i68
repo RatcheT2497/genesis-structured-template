@@ -1,0 +1,23 @@
+    ifnd Z80_I68
+Z80_I68: equ 0
+
+Z80_BUSREQ:     equ $00A11100
+Z80_RESET:      equ $00A11200
+Z80_RAM:        equ $00A00000
+
+Z80_PAUSE:      macro
+    move.w      #$100, Z80_BUSREQ
+    endm
+
+Z80_PAUSE_WAIT:    macro
+    Z80_PAUSE
+.\@:
+    cmp.w       #$100, Z80_BUSREQ
+    bne         .\@
+    endm
+
+Z80_RESUME:     macro
+    move.w      #0, Z80_BUSREQ
+    endm
+
+    endif

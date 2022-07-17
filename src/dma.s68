@@ -1,0 +1,117 @@
+    include "dma.i68"
+    include "vdp.i68"
+    include "z80.i68"
+    include "macros.i68"
+
+    xdef DMAInit
+    xdef DMAEnqueue
+    xdef DMAFlush
+
+    section bss
+dma_queue:       ds.l DMA_ENTRY_SIZE * DMA_ENTRY_COUNT
+dma_queue_end:   equ *
+dma_queue_slot:  ds.l 1 
+    section fbss
+    section code
+
+DMAInit:
+    lea         dma_queue, a0
+    move.l      a0, dma_queue_slot
+    rts
+
+; a0 - source ( in bytes )
+; a1 - dest ( in bytes )
+; d0 - type
+; d1 - length ( in words )
+DMAEnqueue:
+    movem.l      d2-d4/a2, -(sp)
+    SYS_DI
+    Z80_PAUSE
+
+    ; new slot for dma entry
+    move.l      dma_queue_slot, a2
+    cmp.l       #dma_queue_end, a2
+    sf          d0
+    beq.s       .end
+    
+
+    ; TODO: check for source+length overflow and split it
+    moveq       #0, d3
+    sub.w       d1, d3
+    sub.w       a1, d3
+    bcc.s       .no_block_overflow
+
+    ; block overflow
+
+
+.no_block_overflow:
+
+    ; low byte of length
+    move.b      #$93, (a2)+
+    move.b      d1, (a2)+
+
+    ; high byte of length
+    lsr.w       #8, d1
+    move.b      #$94, (a2)+
+    move.b      d1, (a2)+
+
+    ; low byte of source
+    move.l      a0, d1
+    lsr.l       #1, d1 ; source in words
+    move.b      #$95, (a2)+
+    move.b      d1, (a2)+
+
+    ; middle byte of source
+    lsr.w       #8, d1
+    move.b      #$96, (a2)+
+    move.b      d1, (a2)+
+
+    ; high byte of source
+    lsr.w       #8, d1
+    move.b      #$97, (a2)+
+    ; chop off top bit
+    and.b       #$7F, d1
+    move.b      d1, (a2)+
+
+    ; destination - pretty much same as VDP_LOAD_ADDR macro
+    move.l      a1, d1
+
+    lsl.l       #2, d1
+    lsr.w       #2, d1
+    swap        d1
+    or.l        d0, d1
+
+    move.l      d1, (a2)+
+    move.l      a2, dma_queue_slot
+
+    st          d0
+.end:
+    movem.l     (sp)+, d2-d4/a2
+    SYS_EI
+    Z80_RESUME
+    rts
+
+DMAFlush:
+    move.l      a2, -(sp)
+    lea         dma_queue, a0
+    lea         VDP_CTRL, a1
+    move.l      dma_queue_slot, a2
+
+    ; loop from dma_queue start do the last empty slot
+.loop:
+    cmp.l       a0, a2
+    beq.s       .exit
+    ; TODO: unrolling? could be done easily, need to experiment
+    move.w      (a0)+, (a1) ; length 1
+    move.w      (a0)+, (a1) ; length 2
+    move.w      (a0)+, (a1) ; src 1
+    move.w      (a0)+, (a1) ; src 2
+    move.w      (a0)+, (a1) ; src 3
+    move.l      (a0)+, (a1) ; destination
+    bra.s       .loop
+.exit:
+
+    ; reset queue
+    move.l      #dma_queue, dma_queue_slot
+    move.l      (sp)+, a2
+    rts

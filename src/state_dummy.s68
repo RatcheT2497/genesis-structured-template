@@ -1,0 +1,64 @@
+
+    include "vdp.i68"
+    xref tls_font
+    xref tls_fontcnt
+    xdef StateDummyVblank
+    xdef StateDummyHblank
+    xdef StateDummyMain
+
+    section bss
+    section fbss
+    section code
+
+; -------------------------- ;
+; DUMMY STATE VBLANK HANDLER ;
+; -------------------------- ;
+StateDummyVblank:
+    rts
+
+; -------------------------- ;
+; DUMMY STATE HBLANK HANDLER ;
+; -------------------------- ;
+StateDummyHblank:
+    move.l      (sp)+, a0
+    rte
+
+; ----------------- ;
+; DUMMY STATE MAIN  ;
+; ----------------- ;
+StateDummyMain:
+    VDP_WAIT_VBLANK
+
+    ; load palette
+    VDP_LOAD_ADDR VDP_WRITE_CRAM, 0
+    move.w      #%0000000000000000, VDP_DATA
+    move.w      #%0000000000001110, VDP_DATA
+    move.w      #%0000000011100000, VDP_DATA
+    move.w      #%0000111000000000, VDP_DATA
+    move.w      #%0000111011101110, VDP_DATA
+
+    ; load tileset 
+    VDP_LOAD_ADDR VDP_WRITE_VRAM, 0
+    lea         tls_font, a0
+    move.w      tls_fontcnt, d0
+    muls        #VDP_TILELEN_L, d0
+    subq        #1, d0
+.twriteloop:
+    move.l      (a0)+, VDP_DATA
+    dbra        d0, .twriteloop
+
+    ; load tilemap
+    VDP_LOAD_ADDR VDP_WRITE_VRAM, $C000
+    move.w      #("H"-" "), VDP_DATA
+    move.w      #("E"-" "), VDP_DATA
+    move.w      #("L"-" "), VDP_DATA
+    move.w      #("L"-" "), VDP_DATA
+    move.w      #("O"-" "), VDP_DATA
+
+.loop:
+    bra.s .loop
+
+    ; this happens only on state change
+    rts
+
+    section rodata

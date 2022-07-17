@@ -1,0 +1,37 @@
+
+    xdef StringWriteHexU32
+
+    section code
+
+; a0 - output
+; d0 - input
+; d1,a1 - trashed
+StringWriteHexU32:
+    ; d2 redef - counter
+    move.l      d2, -(sp) ; push d2 
+
+    ; write number from the back
+    add.l       #8, a0
+    move.l      a0, a1
+
+
+    ; initialize loop counter and temp value
+    moveq       #0, d1
+    moveq       #7, d2 
+.strloop:
+    ; get lowest nibble of d0 
+    move.b      d0, d1
+    and.w       #$0F, d1
+    lsr.l       #4, d0
+
+    ; turn into ascii character and write to address
+    move.b      hex_lut(pc, d1), d1
+    move.b      d1, -(a1)
+
+    dbra        d2, .strloop
+
+    move.l      (sp)+, d2 ; pop d2
+    rts
+
+hex_lut:
+    dc.b "0123456789ABCDEF"

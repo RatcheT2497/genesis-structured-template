@@ -1,0 +1,86 @@
+
+    include "vdp.i68"
+    include "macros.i68"
+    include "dma.i68"
+    xref tls_font
+    xref tls_fontcnt
+
+    xref DMAFlush
+    xref DMAEnqueue
+    xref DMAInit
+
+    xdef StateGameVblank
+    xdef StateGameHblank
+    xdef StateGameMain
+
+    section bss
+palette: ds.w 64
+    section fbss
+    section code
+
+; ------------------------- ;
+; GAME STATE VBLANK HANDLER ;
+; ------------------------- ;
+StateGameVblank:
+    jsr DMAFlush
+    rts
+
+; ------------------------- ;
+; GAME STATE HBLANK HANDLER ;
+; ------------------------- ;
+StateGameHblank:
+    move.l      (sp)+, a0
+    rte
+
+; ---------------- ;
+; GAME STATE MAIN  ;
+; ---------------- ;
+StateGameMain:
+    lea         palette, a0
+    move.w      #$0000, (a0)+
+    move.w      #$000E, (a0)+
+    move.w      #$00E0, (a0)+
+    move.w      #$0E00, (a0)+
+    move.w      #$0EEE, (a0)+
+
+    jsr DMAInit
+    SYS_EI
+    VDP_WAIT_VBLANK
+
+    ; load palette
+    move.l      #DMA_CPU_TO_CRAM, d0
+    moveq       #64, d1
+    lea         palette, a0
+    move.l      #0, a1
+    jsr         DMAEnqueue
+
+    ; load tileset 
+    move.l      #DMA_CPU_TO_VRAM, d0 ; dma type
+    moveq       #0, d1               ; length
+    move.w      tls_fontcnt, d1
+    muls        #VDP_TILELEN_W, d1
+    lea         tls_font, a0         ; source
+    move.l      #0, a1               ; destination
+    jsr         DMAEnqueue
+    VDP_WAIT_VBLANK
+bruh:
+    ; load tilemap
+    VDP_LOAD_ADDR VDP_WRITE_VRAM, $C000
+    move.w      #("G"-" "), VDP_DATA
+    move.w      #("A"-" "), VDP_DATA
+    move.w      #("M"-" "), VDP_DATA
+    move.w      #("E"-" "), VDP_DATA
+
+.loop:
+    bra.s .loop
+
+    ; this happens only on state change
+    rts
+
+    section rodata
+    even
+dbg_palette:
+    dc.w $0000, $000E, $00E0, $0E00, $0EEE, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    dc.w $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    dc.w $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
+    dc.w $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000

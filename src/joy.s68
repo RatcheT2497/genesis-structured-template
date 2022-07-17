@@ -1,0 +1,67 @@
+    include "joy.i68"
+    include "z80.i68"
+    xdef JOYInit
+    xdef JOYRead
+
+    xdef joy_held_1
+    xdef joy_pressed_1
+    xdef joy_released_1
+
+    xdef joy_held_2
+    xdef joy_pressed_2
+    xdef joy_released_2
+
+    section bss
+    joy_held_1:         rs.w 1
+    joy_pressed_1:      rs.w 1
+    joy_released_1:     rs.w 1
+    joy_held_2:         rs.w 1
+    joy_pressed_2:      rs.w 1
+    joy_released_2:     rs.w 1
+    
+    section code
+JOYInit:
+    Z80_PAUSE
+    move.w      #$100, Z80_BUSREQ
+    move.b      #$40, JOYCTRL1
+    move.b      #$40, JOYCTRL2
+    move.b      #$40, JOYDATA1
+    move.b      #$40, JOYDATA2
+    Z80_RESUME
+    move.w      #0, Z80_BUSREQ
+    rts
+
+JOYRead:
+    lea         JOYDATA1, a0
+    Z80_PAUSE
+    move.w      #$100, Z80_BUSREQ
+    move.b      #$40, (a0)
+    nop
+    nop
+    nop
+    nop
+    move.b      (a0), d0
+
+    move.b      #$00, (a0)
+    nop
+    nop
+    nop
+    nop
+    move.b      (a0), d1
+    Z80_RESUME
+    move.w      #0, Z80_BUSREQ
+
+    and.b       #$3F, d0
+    and.b       #$30, d1
+    lsl.b       #2, d1
+    or.b        d1, d0
+    not.w       d0
+
+    move.w      joy_held_1, d1
+
+    ; d0 hold new state
+    ; d1 holds old state
+
+    move.w      d0, joy_held_1
+
+    rts

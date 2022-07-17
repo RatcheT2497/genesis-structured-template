@@ -1,0 +1,21 @@
+
+    xdef StateSwitch
+
+    section bss
+    state_current:      ds.w 1
+    section code
+; d0 - target state
+StateSwitch:
+    move.w      d0, state_current
+    ; get pointer to new state
+    lea         sys_state_list, a0
+    add.l       d0, a0
+
+    lea         sys_vblank_fn, a1
+    move.l      (a0)+, (a1)+
+    move.l      (a0)+, (a1)+
+    move.l      (a0)+, (a1)+
+    rts
+
+    
+

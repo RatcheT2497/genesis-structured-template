@@ -1,0 +1,181 @@
+    include "macros.i68"
+    include "string.i68"
+    xdef cart_header
+    xdef sys_exception_code
+
+    xref IntEntry
+    xref IntException
+    xref IntHblank
+    xref IntVblank
+
+    section fbss
+sys_exception_code: ds.w 1
+
+    section header
+cart_header:
+    dc.l        $00FFFFFE ; initial sp
+    dc.l        IntEntry ; entry point
+; general cpu exceptions
+    dc.l        IntExceptionTrampoline0
+    dc.l        IntExceptionTrampoline1
+    dc.l        IntExceptionTrampoline2
+    dc.l        IntExceptionTrampoline3
+    dc.l        IntExceptionTrampoline4
+    dc.l        IntExceptionTrampoline5
+    dc.l        IntExceptionTrampoline6
+    dc.l        IntExceptionTrampoline7
+    dc.l        IntExceptionTrampoline8
+    dc.l        IntExceptionTrampoline9
+    dc.l        IntExceptionTrampoline10
+    dc.l        IntExceptionTrampoline11
+    dc.l        IntExceptionTrampoline12
+    dc.l        IntExceptionTrampoline13
+    dc.l        IntExceptionTrampoline14
+    dc.l        IntExceptionTrampoline15
+    dc.l        IntExceptionTrampoline16
+    dc.l        IntExceptionTrampoline17
+    dc.l        IntExceptionTrampoline18
+    dc.l        IntExceptionTrampoline19
+    dc.l        IntExceptionTrampoline20
+    dc.l        IntExceptionTrampoline21
+    dc.l        IntExceptionTrampoline22
+
+; irqs
+    dc.l        IntExceptionTrampoline23 ; lv 1
+    dc.l        IntExceptionTrampoline24 ; lv 2
+    dc.l        IntExceptionTrampoline25 ; lv 3 (ext int)
+    dc.l        IntHblank                ; lv 4 (vdp hblank)
+    dc.l        IntExceptionTrampoline26 ; lv 5
+    dc.l        IntVblank                ; lv 6 (vdp vblank)
+    dc.l        IntExceptionTrampoline27 ; lv 7
+
+; traps
+    dc.l        IntExceptionTrampoline28
+    dc.l        IntExceptionTrampoline29
+    dc.l        IntExceptionTrampoline30
+    dc.l        IntExceptionTrampoline31
+    dc.l        IntExceptionTrampoline32
+    dc.l        IntExceptionTrampoline33
+    dc.l        IntExceptionTrampoline34
+    dc.l        IntExceptionTrampoline35
+    dc.l        IntExceptionTrampoline36
+    dc.l        IntExceptionTrampoline37
+    dc.l        IntExceptionTrampoline38
+    dc.l        IntExceptionTrampoline39
+    dc.l        IntExceptionTrampoline40
+    dc.l        IntExceptionTrampoline41
+    dc.l        IntExceptionTrampoline42
+    dc.l        IntExceptionTrampoline43
+
+; fp exceptions
+    dc.l        IntExceptionTrampoline44
+    dc.l        IntExceptionTrampoline45
+    dc.l        IntExceptionTrampoline46
+    dc.l        IntExceptionTrampoline47
+    dc.l        IntExceptionTrampoline48
+    dc.l        IntExceptionTrampoline49
+    dc.l        IntExceptionTrampoline50
+    dc.l        IntExceptionTrampoline51
+
+; mmu exceptions
+    dc.l        IntExceptionTrampoline52
+    dc.l        IntExceptionTrampoline53
+    dc.l        IntExceptionTrampoline54
+
+; reserved
+    dc.l        IntExceptionTrampoline55
+    dc.l        IntExceptionTrampoline56
+    dc.l        IntExceptionTrampoline57
+    dc.l        IntExceptionTrampoline58
+    dc.l        IntExceptionTrampoline59
+    
+    padstr      "SEGA GENESIS", 16
+    padstr      "COPYRIGHT DATE", 16
+    padstr      "TEMPLATE", 48
+    padstr      "TEMPLATE", 48
+    padstr      "SERIAL", 14
+    padstr      "J", 16
+    ; rom range
+    dc.l        __rom_start
+    dc.l        __rom_end
+    ; ram range
+    dc.l        $00FF0000
+    dc.l        $00FFFFFF
+    ; extra memory
+    ds.b        12, " "
+    ; modem support
+    ds.b        12, " "
+    ; reserved
+    ds.b        40, " "
+    ; region
+    dc.b        "JUE"
+    ; reserved
+    ds.b        13, " "
+
+EXCEPTION_TRAMPOLINE: macro
+IntExceptionTrampoline\1:
+    move.w      #\1, sys_exception_code
+    jmp         IntException
+    endm
+
+    section code
+    EXCEPTION_TRAMPOLINE 0
+    EXCEPTION_TRAMPOLINE 1
+    EXCEPTION_TRAMPOLINE 2
+    EXCEPTION_TRAMPOLINE 3
+    EXCEPTION_TRAMPOLINE 4
+    EXCEPTION_TRAMPOLINE 5
+    EXCEPTION_TRAMPOLINE 6
+    EXCEPTION_TRAMPOLINE 7
+    EXCEPTION_TRAMPOLINE 8
+    EXCEPTION_TRAMPOLINE 9
+    EXCEPTION_TRAMPOLINE 10
+    EXCEPTION_TRAMPOLINE 11
+    EXCEPTION_TRAMPOLINE 12
+    EXCEPTION_TRAMPOLINE 13
+    EXCEPTION_TRAMPOLINE 14
+    EXCEPTION_TRAMPOLINE 15
+    EXCEPTION_TRAMPOLINE 16
+    EXCEPTION_TRAMPOLINE 17
+    EXCEPTION_TRAMPOLINE 18
+    EXCEPTION_TRAMPOLINE 19
+    EXCEPTION_TRAMPOLINE 20
+    EXCEPTION_TRAMPOLINE 21
+    EXCEPTION_TRAMPOLINE 22
+    EXCEPTION_TRAMPOLINE 23
+    EXCEPTION_TRAMPOLINE 24
+    EXCEPTION_TRAMPOLINE 25
+    EXCEPTION_TRAMPOLINE 26
+    EXCEPTION_TRAMPOLINE 27
+    EXCEPTION_TRAMPOLINE 28
+    EXCEPTION_TRAMPOLINE 29
+    EXCEPTION_TRAMPOLINE 30
+    EXCEPTION_TRAMPOLINE 31
+    EXCEPTION_TRAMPOLINE 32
+    EXCEPTION_TRAMPOLINE 33
+    EXCEPTION_TRAMPOLINE 34
+    EXCEPTION_TRAMPOLINE 35
+    EXCEPTION_TRAMPOLINE 36
+    EXCEPTION_TRAMPOLINE 37
+    EXCEPTION_TRAMPOLINE 38
+    EXCEPTION_TRAMPOLINE 39
+    EXCEPTION_TRAMPOLINE 40
+    EXCEPTION_TRAMPOLINE 41
+    EXCEPTION_TRAMPOLINE 42
+    EXCEPTION_TRAMPOLINE 43
+    EXCEPTION_TRAMPOLINE 44
+    EXCEPTION_TRAMPOLINE 45
+    EXCEPTION_TRAMPOLINE 46
+    EXCEPTION_TRAMPOLINE 47
+    EXCEPTION_TRAMPOLINE 48
+    EXCEPTION_TRAMPOLINE 49
+    EXCEPTION_TRAMPOLINE 50
+    EXCEPTION_TRAMPOLINE 51
+    EXCEPTION_TRAMPOLINE 52
+    EXCEPTION_TRAMPOLINE 53
+    EXCEPTION_TRAMPOLINE 54
+    EXCEPTION_TRAMPOLINE 55
+    EXCEPTION_TRAMPOLINE 56
+    EXCEPTION_TRAMPOLINE 57
+    EXCEPTION_TRAMPOLINE 58
+    EXCEPTION_TRAMPOLINE 59

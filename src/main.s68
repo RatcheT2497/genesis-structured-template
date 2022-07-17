@@ -1,0 +1,64 @@
+    include "vdp.i68"
+    include "macros.i68"
+    include "statelist.i68"
+    xdef Main
+    xdef IntHblank
+    xdef IntVblank
+
+    xref StateSwitch
+
+    xdef sys_vblank_fn
+    xdef sys_hblank_fn
+    xdef sys_main_fn
+    xdef sys_vblank_flag
+
+    section bss
+    palette_cur:        ds.w 64
+    sys_vblank_fn:      ds.l 1
+    sys_hblank_fn:      ds.l 1
+    sys_main_fn:        ds.l 1
+
+    sys_vblank_flag:    ds.b 1
+
+    section rodata
+
+    section code
+
+Main:
+    ; install init game state
+    move.l      #STATE_GAME, d0
+    jsr         StateSwitch
+
+main_loop:
+    move.l      sys_main_fn, a0
+    jsr         (a0)
+    bra.s       main_loop
+
+
+
+; =================== ;
+;  HBLANK INTERRUPT   ;
+; =================== ;
+IntHblank:
+    move.l      a0, -(sp)
+    move.l      sys_hblank_fn, a0
+    jmp         (a0)
+
+; =================== ;
+;  VBLANK INTERRUPT   ;
+; =================== ;
+IntVblank:
+    movem.l     a0-a6/d0-d7, -(sp)
+    ; reset vblank flag
+    ; when outside code wants to check for vblank, 
+    ; it needs to set sys_vblank_fn to 1 and wait until it's 0
+    move.b      #0, sys_vblank_flag 
+    move.l      sys_vblank_fn, a0
+    jsr         (a0)
+    movem.l     (sp)+, a0-a6/d0-d7
+    rte
+
+
+
+
+

@@ -1,0 +1,7 @@
+    xdef tls_fontcnt
+    xdef tls_font
+
+    section rodata
+tls_fontcnt:
+    incbin "../content/debugfont.bin"
+tls_font: equ tls_fontcnt + 2

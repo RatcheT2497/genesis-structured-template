@@ -1,0 +1,9 @@
+obj/*
+bin/*
+content/*
+list/*
+*.bin
+*.map
+tools
+tools/*
+

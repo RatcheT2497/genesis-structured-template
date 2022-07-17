@@ -1,0 +1,26 @@
+
+    xref StateDummyVblank
+    xref StateDummyHblank
+    xref StateDummyMain
+
+    xref StateTitleVblank
+    xref StateTitleHblank
+    xref StateTitleMain
+
+    xref StateGameVblank
+    xref StateGameHblank
+    xref StateGameMain
+
+    xref StateGameOverVblank
+    xref StateGameOverHblank
+    xref StateGameOverMain
+
+    xdef sys_state_list
+    section rodata
+sys_state_list:
+    dc.l StateDummyVblank, StateDummyHblank, StateDummyMain, 0 ; dummy
+    dc.l StateTitleVblank, StateTitleHblank, StateTitleMain, 0 ; title
+    dc.l StateGameVblank, StateGameHblank, StateGameMain, 0 ; game
+    dc.l StateGameOverVblank, StateGameOverHblank, StateGameOverMain, 0 ; game over
+
+

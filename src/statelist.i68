@@ -1,0 +1,8 @@
+    ifnd        STATELIST_I68
+STATELIST_I68: equ 0
+
+STATE_DUMMY: equ $0000
+STATE_TITLE: equ $0010
+STATE_GAME: equ $0020
+STATE_GAMEOVER: equ $0030
+    endif

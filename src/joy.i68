@@ -1,0 +1,9 @@
+    ifnd JOY_I68
+JOY_I68: equ 0
+
+JOYCTRL1:       equ $A10009
+JOYCTRL2:       equ $A1000B
+JOYDATA1:       equ $A10003
+JOYDATA2:       equ $A10005
+   endif 
+

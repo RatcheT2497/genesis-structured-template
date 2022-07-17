@@ -1,0 +1,33 @@
+    include "z80.i68"
+    xdef Z80Init
+
+    section code
+; **************** ;
+; Z80 INIT ROUTINE ;
+; **************** ;
+; trashes a0       ;
+; **************** ;
+Z80Init:
+    ; get access to z80 bus 
+    move.w      #0, Z80_RESET
+    move.w      #$0100, Z80_BUSREQ
+    move.w      #$0100, Z80_RESET
+    ; wait for access to bus
+.wait:
+    btst        #0, Z80_BUSREQ  
+    bne         .wait
+
+    ; TODO: init actual sound driver
+    ; write nop, jp 0 to z80 ram
+    ; apparently z80 ram can't be accessed by word or long writes
+    ; so byte by byte it is
+    lea         Z80_RAM, a0
+    move.b      #0, (a0)+   ; nop
+    move.b      #$C3, (a0)+ ; jp
+    move.b      #0, (a0)+   ; lo: 0
+    move.b      #0, (a0)+   ; hi: 0
+
+    ; release bus and let go of z80 reset
+    move.w      #$0100, Z80_RESET
+    move.w      #0, Z80_BUSREQ
+    rts
